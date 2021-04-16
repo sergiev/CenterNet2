@@ -48,8 +48,10 @@ def build_custom_augmentation(cfg, is_train):
     else:
         assert 0, cfg.INPUT.CUSTOM_AUG
 
-    if is_train:
-        augmentation.append(T.RandomFlip())
+    # SERGIEV DISABLED IT AS IRRELEVANT IN STR
+    # if is_train:
+    #     augmentation.append(T.RandomFlip())
+
     return augmentation
 
 

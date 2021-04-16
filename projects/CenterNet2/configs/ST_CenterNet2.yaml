@@ -1,0 +1,14 @@
+_BASE_: "CenterNet2_DLA-BiFPN-P5_640_24x_ST.yaml"
+MODEL:
+  ROI_HEADS:
+    NUM_CLASSES: 68
+  CENTERNET:
+    NUM_CLASSES: 68
+DATASETS:
+  TRAIN: ("st_train",)
+  TEST: ("st_val",)
+SOLVER:
+  LR_SCHEDULER_NAME: "WarmupCosineLR"
+  MAX_ITER: 36000000
+  BASE_LR: 0.08
+  IMS_PER_BATCH: 64
