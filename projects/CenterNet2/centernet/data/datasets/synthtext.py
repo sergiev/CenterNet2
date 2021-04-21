@@ -10,7 +10,6 @@ import re
 
 ROOT = '/media/sergiev/painkiller/Downloads/SynthText/SynthText/'
 CACHED = True
-ORD_MIN = 32
 
 st_categories = [{'id': 1, 'name': '!'}, {'id': 2, 'name': '"'}, {'id': 3, 'name': '#'},
                  {'id': 4, 'name': '$'}, {'id': 5, 'name': '%'}, {'id': 6, 'name': '&'},
@@ -34,7 +33,7 @@ st_categories = [{'id': 1, 'name': '!'}, {'id': 2, 'name': '"'}, {'id': 3, 'name
                  {'id': 58, 'name': 'Z'}, {'id': 59, 'name': '['}, {'id': 60, 'name': '\\'},
                  {'id': 61, 'name': ']'}, {'id': 62, 'name': '^'}, {'id': 63, 'name': '_'},
                  {'id': 64, 'name': '`'}, {'id': 65, 'name': '{'}, {'id': 66, 'name': '|'},
-                 {'id': 67, 'name': '}'}, {'id': 68, 'name': '~'}]
+                 {'id': 67, 'name': '}'}, {'id': 0, 'name': '~'}]
 name_to_id = {i['name']: i['id'] for i in st_categories}
 
 
@@ -72,7 +71,7 @@ def split():
     size = 858750 if CACHED else len(loadmat(join(ROOT, 'gt.mat'))['imnames'][0])
     indices = np.arange(size)
     train_idx, test_idx = train_test_split(indices, test_size=.3)
-    val_idx, test_idx = train_test_split(test_idx, test_size=.5)
+    val_idx, test_idx = train_test_split(test_idx, test_size=.9)
     print([len(i) for i in (val_idx, test_idx, train_idx)])
     idx_to_json(train_idx, 'st_train.json')
     idx_to_json(val_idx, 'st_val.json')
