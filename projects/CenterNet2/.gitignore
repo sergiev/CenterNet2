@@ -8,3 +8,6 @@ centernet.egg-info/
 build/
 dist/
 wheels/
+img/
+demout/
+/img/

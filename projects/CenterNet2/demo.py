@@ -104,7 +104,7 @@ if __name__ == "__main__":
                 )
             else:
                 logger.info(
-                    "{}: detected {} instances in {:.2f}s".format(
+                    "{}: detected {} proposals in {:.2f}s".format(
                         path, len(predictions["proposals"]), time.time() - start_time
                     )
                 )

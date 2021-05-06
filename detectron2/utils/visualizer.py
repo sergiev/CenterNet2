@@ -245,7 +245,7 @@ def _create_text_labels(classes, scores, class_names, is_crowd=None):
         if labels is None:
             labels = ["{:.0f}%".format(s * 100) for s in scores]
         else:
-            labels = ["{} {:.0f}%".format(l, s * 100) for l, s in zip(labels, scores)]
+            labels = ["{}\n{:.0f}%".format(l, s * 100) for l, s in zip(labels, scores)]
     if labels is not None and is_crowd is not None:
         labels = [l + ("|crowd" if crowd else "") for l, crowd in zip(labels, is_crowd)]
     return labels
@@ -873,7 +873,7 @@ class Visualizer:
             text,
             size=font_size * self.output.scale,
             family="sans-serif",
-            bbox={"facecolor": "black", "alpha": 0.8, "pad": 0.7, "edgecolor": "none"},
+            bbox={"facecolor": "black", "alpha": 0.5, "pad": 0.7, "edgecolor": "none"},
             verticalalignment="top",
             horizontalalignment=horizontal_alignment,
             color=color,
