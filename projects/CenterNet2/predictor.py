@@ -64,6 +64,7 @@ class VisualizationDemo(object):
                 )
             if "instances" in predictions:
                 instances = predictions["instances"].to(self.cpu_device)
+                visualizer.charBoxesToWords(image, instances)
                 if use_video_vis:
                     vis_output = visualizer.draw_instance_predictions(
                         image, predictions=instances)

@@ -2,6 +2,7 @@
 import numpy as np
 import pycocotools.mask as mask_util
 
+from detectron2.structures import Boxes, RotatedBoxes
 from detectron2.utils.visualizer import (
     ColorMode,
     Visualizer,
@@ -49,6 +50,15 @@ class VideoVisualizer:
             ColorMode.IMAGE_BW,
         ], "Other mode not supported yet."
         self._instance_mode = instance_mode
+
+    def _convert_boxes(self, boxes):
+        """
+        Convert different format of boxes to an NxB array, where B = 4 or 5 is the box dimension.
+        """
+        if isinstance(boxes, Boxes) or isinstance(boxes, RotatedBoxes):
+            return boxes.tensor.numpy()
+        else:
+            return np.asarray(boxes)
 
     def draw_instance_predictions(self, frame, predictions):
         """
@@ -109,6 +119,59 @@ class VideoVisualizer:
 
         return frame_visualizer.output
 
+    def nextChar(self, word, boxes, chars, index, box_map):
+        """
+        Args:
+            word: string to add new char
+            chars: array of chars detected on image
+            boxes: array of corresponding bounding boxes
+            index: boxes[index] is the position of chars[index] symbol
+            box_map: np.ndarray, box_map[i][j]==k means that k-th box includes this pixel
+
+        Returns: new_word, new_box_map
+        """
+        xmin, ymin, xmax, ymax = boxes[index]
+        step = max(xmax - xmin, ymax - ymin)
+        window = box_map[ymin:ymax, xmin:xmax + step]
+        response = window[(window != -1) & (window != index)]
+        if not np.size(response): # if no next char found
+            return word, box_map
+        else:
+            next_index = response[0]
+            next_char = chars[next_index]
+            next_box = boxes[next_index]
+            new_word = word + next_char
+            new_box_map = np.where(box_map == index, -1, box_map)
+            return self.nextChar(new_word, boxes, chars, next_index, new_box_map)
+
+    def charBoxesToWords(self, image, predictions):
+        """
+        Merges characters into words based on their location
+        Args:
+            predictions: detectron2 predictions objects
+
+        Returns:
+            word_boxes: list of pairs string-coordinates
+        """
+        boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
+        boxes = self._convert_boxes(boxes)
+        scores = predictions.scores if predictions.has("scores") else None
+        classes = predictions.pred_classes if predictions.has("pred_classes") else None
+        chars = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+        box_map = np.zeros(image.shape[:2]).astype(np.uint8)
+        box_map.fill(-1)
+        total = len(boxes)
+        words = []
+        chars = chars[boxes[:, 0].argsort()]
+        boxes = boxes[boxes[:, 0].argsort()].astype(int)  # sort by xmin
+        for i in range(total):
+            xmin, ymin, xmax, ymax = boxes[i]
+            box_map[ymin:ymax, xmin:xmax] = i
+        for i in range(total):
+            word, box_map = self.nextChar('',boxes, chars, i, box_map)
+        print(words)
+        # TODO имея положения и классы букв, восстановить слово и его bbox
+
     def draw_sem_seg(self, frame, sem_seg, area_threshold=None):
         """
         Args:
@@ -122,7 +185,7 @@ class VideoVisualizer:
         return frame_visualizer.output
 
     def draw_panoptic_seg_predictions(
-        self, frame, panoptic_seg, segments_info, area_threshold=None, alpha=0.5
+            self, frame, panoptic_seg, segments_info, area_threshold=None, alpha=0.5
     ):
         frame_visualizer = Visualizer(frame, self.metadata)
         pred = _PanopticPrediction(panoptic_seg, segments_info, self.metadata)
