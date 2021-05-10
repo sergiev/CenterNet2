@@ -13,12 +13,14 @@ from detectron2.utils.logger import setup_logger
 
 from predictor import VisualizationDemo
 from centernet.config import add_centernet_config
+
 # constants
 WINDOW_NAME = "CenterNet2 detections"
 
 from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2.utils.visualizer import ColorMode, Visualizer
 from detectron2.data import MetadataCatalog
+
 
 def setup_cfg(args):
     # load config from file and command-line arguments
@@ -51,7 +53,7 @@ def get_parser():
     parser.add_argument(
         "--output",
         help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
+             "If not given, will show output in an OpenCV window.",
     )
 
     parser.add_argument(
@@ -88,14 +90,22 @@ if __name__ == "__main__":
         visualizer = VideoVisualizer(
             MetadataCatalog.get(
                 cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
-            ), 
+            ),
             instance_mode=ColorMode.IMAGE)
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
+            number = path[path.rfind('_')+1:-4]
             img = read_image(path, format="BGR")
             start_time = time.time()
-            predictions, visualized_output = demo.run_on_image(
-                img, visualizer=visualizer)
+            predictions, visualized_output, ic15_output = demo.run_on_image(img,
+                                                                            visualizer=visualizer)
+            s = ''
+            for i in ic15_output:
+                for j in i:
+                    s += str(j) + ','
+                s = s[:-1] + '\r\n'
+            with open(f'ic15_str_out/res_img_{number}.txt', 'w') as ic_out:
+                ic_out.write(s[:-2])
             if 'instances' in predictions:
                 logger.info(
                     "{}: detected {} instances in {:.2f}s".format(
@@ -149,7 +159,7 @@ if __name__ == "__main__":
         video = cv2.VideoCapture(args.video_input)
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        frames_per_second = 15 # video.get(cv2.CAP_PROP_FPS)
+        frames_per_second = 15  # video.get(cv2.CAP_PROP_FPS)
         num_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         basename = os.path.basename(args.video_input)
 

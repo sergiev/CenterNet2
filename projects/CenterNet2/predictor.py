@@ -64,7 +64,8 @@ class VisualizationDemo(object):
                 )
             if "instances" in predictions:
                 instances = predictions["instances"].to(self.cpu_device)
-                visualizer.charBoxesToWords(image, instances)
+                ic15_output = visualizer.merge_chars(image, instances)
+
                 if use_video_vis:
                     vis_output = visualizer.draw_instance_predictions(
                         image, predictions=instances)
@@ -81,7 +82,7 @@ class VisualizationDemo(object):
                 else:
                     vis_output = visualizer.draw_instance_predictions(predictions=instances)
 
-        return predictions, vis_output
+        return predictions, vis_output, ic15_output
 
     def _frame_from_video(self, video):
         while video.isOpened():

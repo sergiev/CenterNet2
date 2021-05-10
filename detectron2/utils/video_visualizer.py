@@ -37,6 +37,11 @@ class _DetectedInstance:
         self.ttl = ttl
 
 
+def xyxy_abs_to_poly(bbox):
+    xmin, ymin, xmax, ymax = bbox
+    return xmin, ymin, xmax, ymin, xmax, ymax, xmin, ymax
+
+
 class VideoVisualizer:
     def __init__(self, metadata, instance_mode=ColorMode.IMAGE):
         """
@@ -119,10 +124,11 @@ class VideoVisualizer:
 
         return frame_visualizer.output
 
-    def nextChar(self, word, boxes, chars, index, box_map):
+    def next_char(self, word, word_box, boxes, chars, index, box_map, used):
         """
         Args:
             word: string to add new char
+            word_box: bbox containing word
             chars: array of chars detected on image
             boxes: array of corresponding bounding boxes
             index: boxes[index] is the position of chars[index] symbol
@@ -131,20 +137,21 @@ class VideoVisualizer:
         Returns: new_word, new_box_map
         """
         xmin, ymin, xmax, ymax = boxes[index]
-        step = max(xmax - xmin, ymax - ymin)
+        step = max(xmax - xmin, ymax - ymin) // 10  # max(xmax - xmin, ymax - ymin)
         window = box_map[ymin:ymax, xmin:xmax + step]
         response = window[(window != -1) & (window != index)]
-        if not np.size(response): # if no next char found
-            return word, box_map
-        else:
-            next_index = response[0]
-            next_char = chars[next_index]
-            next_box = boxes[next_index]
-            new_word = word + next_char
-            new_box_map = np.where(box_map == index, -1, box_map)
-            return self.nextChar(new_word, boxes, chars, next_index, new_box_map)
+        if not np.size(response):  # if no next char found
+            return word, word_box, box_map, used + [index]
+        next_index = response[0]
+        next_char = chars[next_index]
+        nxmin, nymin, nxmax, nymax = boxes[next_index]
+        wxmin, wymin, wxmax, wymax = word_box
+        word_box = [min(nxmin, wxmin), min(nymin, wymin), max(nxmax, wxmax), max(nymax, wymax)]
+        word = word + next_char
+        box_map = np.where(box_map == index, -1, box_map)
+        return self.next_char(word, word_box, boxes, chars, next_index, box_map, used + [index])
 
-    def charBoxesToWords(self, image, predictions):
+    def merge_chars(self, image, predictions):
         """
         Merges characters into words based on their location
         Args:
@@ -154,23 +161,32 @@ class VideoVisualizer:
             word_boxes: list of pairs string-coordinates
         """
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
-        boxes = self._convert_boxes(boxes)
+        boxes = self._convert_boxes(boxes).astype(int)
         scores = predictions.scores if predictions.has("scores") else None
         classes = predictions.pred_classes if predictions.has("pred_classes") else None
         chars = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
-        box_map = np.zeros(image.shape[:2]).astype(np.uint8)
+        chars = np.array([i[0] for i in chars])
+        box_map = np.zeros(image.shape[:2]).astype(int)
         box_map.fill(-1)
         total = len(boxes)
         words = []
         chars = chars[boxes[:, 0].argsort()]
-        boxes = boxes[boxes[:, 0].argsort()].astype(int)  # sort by xmin
+        boxes = boxes[boxes[:, 0].argsort()]  # sort by xmin
+        used = []
+        word_boxes = []
         for i in range(total):
             xmin, ymin, xmax, ymax = boxes[i]
             box_map[ymin:ymax, xmin:xmax] = i
         for i in range(total):
-            word, box_map = self.nextChar('',boxes, chars, i, box_map)
-        print(words)
-        # TODO имея положения и классы букв, восстановить слово и его bbox
+            if i in used:
+                continue
+            word, word_box, box_map, local_used = self.next_char(chars[i], boxes[i], boxes, chars,
+                                                                 i, box_map, [])
+            # word = word if len(word) > 2 else '###'
+            used += local_used
+            words.append(word)
+            word_boxes.append(word_box)
+        return [[*xyxy_abs_to_poly(word_boxes[i]), words[i]] for i in range(len(words))]
 
     def draw_sem_seg(self, frame, sem_seg, area_threshold=None):
         """
