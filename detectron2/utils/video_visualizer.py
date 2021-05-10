@@ -38,6 +38,13 @@ class _DetectedInstance:
 
 
 def xyxy_abs_to_poly(bbox):
+    """
+    Args:
+        bbox: quadruplet of ints [xmin, ymin, xmax, ymax]
+
+    Returns:
+        Polygon in IC15 format (clockwise XY points, starting from left top)
+    """
     xmin, ymin, xmax, ymax = bbox
     return xmin, ymin, xmax, ymin, xmax, ymax, xmin, ymax
 
@@ -133,8 +140,9 @@ class VideoVisualizer:
             boxes: array of corresponding bounding boxes
             index: boxes[index] is the position of chars[index] symbol
             box_map: np.ndarray, box_map[i][j]==k means that k-th box includes this pixel
+            used: list of indexes of elements that already been used
 
-        Returns: new_word, new_box_map
+        Returns: word, word_box, box_map,
         """
         xmin, ymin, xmax, ymax = boxes[index]
         step = max(xmax - xmin, ymax - ymin) // 10  # max(xmax - xmin, ymax - ymin)
@@ -155,10 +163,11 @@ class VideoVisualizer:
         """
         Merges characters into words based on their location
         Args:
-            predictions: detectron2 predictions objects
+            image: numpy array of arbitrary shape with at least 2 dimensions
+            predictions: detectron2 prediction objects
 
         Returns:
-            word_boxes: list of pairs string-coordinates
+            word_boxes: list of lists of 8 ints (polygon corners) and a string - corresponding word
         """
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
         boxes = self._convert_boxes(boxes).astype(int)
