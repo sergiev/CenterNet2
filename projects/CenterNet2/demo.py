@@ -104,7 +104,7 @@ if __name__ == "__main__":
                 for j in i:
                     s += str(j) + ','
                 s = s[:-1] + '\r\n'
-            with open(f'ic15_str_out/res_img_{number}.txt', 'w') as ic_out:
+            with open(f'e2e_out/res_img_{number}.txt', 'w') as ic_out:
                 ic_out.write(s[:-2])
             if 'instances' in predictions:
                 logger.info(

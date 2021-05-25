@@ -145,7 +145,7 @@ class VideoVisualizer:
         Returns: word, word_box, box_map,
         """
         xmin, ymin, xmax, ymax = boxes[index]
-        step = max(xmax - xmin, ymax - ymin) // 10  # max(xmax - xmin, ymax - ymin)
+        step = max(xmax - xmin, ymax - ymin) // 10
         window = box_map[ymin:ymax, xmin:xmax + step]
         response = window[(window != -1) & (window != index)]
         if not np.size(response):  # if no next char found
@@ -191,7 +191,8 @@ class VideoVisualizer:
                 continue
             word, word_box, box_map, local_used = self.next_char(chars[i], boxes[i], boxes, chars,
                                                                  i, box_map, [])
-            # word = word if len(word) > 2 else '###'
+            if len(word) < 3:
+                continue
             used += local_used
             words.append(word)
             word_boxes.append(word_box)
